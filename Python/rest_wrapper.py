@@ -5,7 +5,6 @@ import importlib
 import os
 import json
 
-
 #This class will handle incoming requests
 class myHandler(BaseHTTPRequestHandler):
 
@@ -19,17 +18,19 @@ class myHandler(BaseHTTPRequestHandler):
 			path_list = path.split('?')
 		else:
 			path_list.append(path)
-		target_file = '{}{}'.format(os.getcwd(),path_list[0])
+		#target_file = '{}{}'.format(os.getcwd(),path_list[0])
+		target_file = '{}'.format(path_list[0])
 		print('Target File: {}'.format(target_file))
 		if os.path.exists(target_file) and not os.path.isdir(target_file):
 			response = target_file
 			import_dir = target_file.replace(target_file.split('/')[-1],'')
 			print('Import Dir: {}'.format(import_dir))
 			import_file = target_file.split('/')[-1].replace('.py','')
+			print('Import File: {}'.format(import_file))
 			if not target_file.replace(target_file.split('/')[-1],'') in sys.path:
 				sys.path.append(target_file.replace(target_file.split('/')[-1],''))
 			#print('SysPath: {}'.format(sys.path))
-			foo = importlib.import_module('{}.{}'.format(import_file,import_file))
+			foo = importlib.import_module('{}'.format(import_file))
 			info_dict = {}
 			if len(path_list) == 2:
 				argument_list = path_list[1].split('&')
