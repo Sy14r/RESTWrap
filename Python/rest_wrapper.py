@@ -9,19 +9,19 @@ import json
 #This class will handle incoming requests
 class myHandler(BaseHTTPRequestHandler):
 
-	#Handler for the GET requests
+	#Handler for the GET requests; requires a urlencoded submission
 	def do_GET(self):
 		path = urllib.parse.unquote(self.path)
 		print('Request Path: {}'.format(path))
 		path_list = []
-		response = 'No Such File\n'
+		response = 'No Such File'
 		if '?' in path:
 			path_list = path.split('?')
 		else:
 			path_list.append(path)
 		target_file = '{}{}'.format(os.getcwd(),path_list[0])
 		print('Target File: {}'.format(target_file))
-		if os.path.exists(target_file):
+		if os.path.exists(target_file) and not os.path.isdir(target_file):
 			response = target_file
 			import_dir = target_file.replace(target_file.split('/')[-1],'')
 			print('Import Dir: {}'.format(import_dir))
@@ -40,31 +40,40 @@ class myHandler(BaseHTTPRequestHandler):
 				if 'class' in info_dict:
 					foo = getattr(foo,info_dict['class'])()
 				if 'method' in info_dict:
-					foo = getattr(foo,info_dict['method'])()
+					if 'args' in info_dict:
+						try:
+							foo = getattr(foo,info_dict['method'])(info_dict['args'])
+						except TypeError:
+							foo = 'improper method usage'
+					else:
+						foo = getattr(foo,info_dict['method'])()
 					response_dict = {}
 					response_dict['output'] = foo
-					json_response = json.dumps(response_dict)
-					print(json_response)
+					response = json.dumps(response_dict)
 				print(response)
-		response += '\n'
 		self.send_response(200)
 		self.send_header('Content-type','application/json')
 		self.end_headers()
 		# send the html message
-		self.wfile.write(bytes(json_response,'utf-8'))
+		self.wfile.write(bytes(response,'utf-8'))
 		return
 
 if __name__ == '__main__':
-
 	PORT_NUMBER = 8000
 	BASE_DIR = os.getcwd()
+	bail = False
 	if len(sys.argv) == 2:
-		PORT_NUMBER = int(sys.argv[1])
-	try:
-		print('{} {}'.format(BASE_DIR, str(PORT_NUMBER)))
-		server = HTTPServer(('',PORT_NUMBER), myHandler)
-		print('Started the server on port {}'.format(PORT_NUMBER))
-		server.serve_forever()
-	except KeyboardInterrupt:
-		print('^C  received, shutting down webserver')
-		server.socket.close()
+		try:
+			PORT_NUMBER = int(sys.argv[1])
+		except ValueError:
+			print('Failed to start... only the first argument is consumed and it must be a valid port number to start the server on')
+			bail = True
+	if not bail:
+		try:
+			print('{} {}'.format(BASE_DIR, str(PORT_NUMBER)))
+			server = HTTPServer(('',PORT_NUMBER), myHandler)
+			print('Started the server on port {}'.format(PORT_NUMBER))
+			server.serve_forever()
+		except KeyboardInterrupt:
+			print('^C  received, shutting down webserver')
+			server.socket.close()
